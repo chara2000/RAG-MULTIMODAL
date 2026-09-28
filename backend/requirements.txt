@@ -1,0 +1,32 @@
+# API Framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Variables de entorno
+pydantic-settings==2.4.0
+python-dotenv==1.0.1
+
+# Procesamiento de PDFs (extrae texto, tablas e imágenes)
+PyMuPDF==1.24.10
+
+# Base de datos vectorial Qdrant
+qdrant-client==1.11.3
+
+# OpenAI (LLM + Embeddings)
+openai==1.51.0
+
+# Subida de archivos
+python-multipart==0.0.12
+
+# Resiliencia: Retry con backoff exponencial
+tenacity==9.0.0
+
+# Utilidades
+httpx==0.27.2
+aiofiles==24.1.0
+pillow==10.4.0
+
+# Tests
+pytest==8.3.3
+pytest-asyncio==0.24.0
+pytest-mock==3.14.0
