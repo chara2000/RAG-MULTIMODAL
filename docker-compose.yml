@@ -1,0 +1,108 @@
+services:
+
+  # ════════════════════════════════════════════════
+  # BASE DE DATOS VECTORIAL
+  # Corre primero. El backend NO arranca hasta que
+  # Qdrant pase su healthcheck.
+  # ════════════════════════════════════════════════
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: rag_qdrant
+    ports:
+      - "6333:6333"   # REST API  → localhost:6333
+      - "6334:6334"   # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/6333' 2>/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+  # ════════════════════════════════════════════════
+  # LLM LOCAL — Ollama
+  # Alternativa 100% gratuita a OpenAI.
+  # Descarga llama3.2 automáticamente al iniciar.
+  # Cambia LLM_PROVIDER=ollama en el .env para usarlo.
+  # ════════════════════════════════════════════════
+  ollama:
+    image: ollama/ollama:latest
+    container_name: rag_ollama
+    ports:
+      - "11434:11434"   # API de Ollama → localhost:11434
+    volumes:
+      # Guarda los modelos descargados (no se re-descargan al reiniciar)
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 20s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
+
+  # ════════════════════════════════════════════════
+  # API BACKEND (FastAPI)
+  # ════════════════════════════════════════════════
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: rag_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env                              # ← Lee OPENAI_API_KEY, LLM_PROVIDER, etc.
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_BASE_URL=http://ollama:11434   # DNS interno → contenedor ollama
+      - STORAGE_DIR=/app/storage
+      - LOG_LEVEL=INFO
+    volumes:
+      - storage_data:/app/storage
+      - ./backend/app:/app/app
+      - ./backend/tests:/app/tests
+    depends_on:
+      qdrant:
+        condition: service_healthy      # Qdrant debe estar sano (crítico)
+      ollama:
+        condition: service_started      # Solo necesita estar corriendo, no sano
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ════════════════════════════════════════════════
+  # INTERFAZ FRONTEND (Streamlit)
+  # ════════════════════════════════════════════════
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: rag_frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    volumes:
+      - storage_data:/app/storage:ro
+      - ./frontend/streamlit_app.py:/app/streamlit_app.py
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+# ════════════════════════════════════════════════
+# VOLÚMENES PERSISTENTES
+# ════════════════════════════════════════════════
+volumes:
+  qdrant_data:    # Vectores de Qdrant
+  storage_data:   # PDFs + imágenes extraídas
+  ollama_data:    # Modelos de Ollama (llama3.2, etc.)

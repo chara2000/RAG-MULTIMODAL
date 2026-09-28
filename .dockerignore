@@ -1,0 +1,44 @@
+# ─── Git ───────────────────────────────────────────────
+.git
+.gitignore
+
+# ─── Archivos de entorno (no van dentro de la imagen) ──
+.env
+.env.*
+!.env.example
+
+# ─── Storage: PDFs subidos e imágenes extraídas ─────────
+# Los datos persisten en el volumen Docker, no en la imagen
+storage/
+backend/storage/
+
+# ─── Python cache ───────────────────────────────────────
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+**/.pytest_cache/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ─── Entornos virtuales ─────────────────────────────────
+.venv/
+venv/
+env/
+
+# ─── IDE y editores ─────────────────────────────────────
+.vscode/
+.idea/
+*.kilo
+.kilo/
+
+# ─── Logs ───────────────────────────────────────────────
+*.log
+logs/
+
+# ─── OS ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
